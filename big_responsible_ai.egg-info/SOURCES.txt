@@ -1,0 +1,17 @@
+README.md
+setup.py
+big_responsible_ai/__init__.py
+big_responsible_ai/class_imbalance.py
+big_responsible_ai/conditional_demographic_disparity.py
+big_responsible_ai/difference_in_proportion_labels.py
+big_responsible_ai/kolmogorov_smirnov.py
+big_responsible_ai/kullback_leibler_divergence.py
+big_responsible_ai/lp_norm.py
+big_responsible_ai/metric_interface.py
+big_responsible_ai.egg-info/PKG-INFO
+big_responsible_ai.egg-info/SOURCES.txt
+big_responsible_ai.egg-info/dependency_links.txt
+big_responsible_ai.egg-info/requires.txt
+big_responsible_ai.egg-info/top_level.txt
+tests/__init__.py
+tests/test_metrics.py
