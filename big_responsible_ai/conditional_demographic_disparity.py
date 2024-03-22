@@ -1,10 +1,11 @@
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, when, avg
 
-class ConditionalDemographicDisparity(Metric):
+class ConditionalDemographicDisparity:
     def __init__(self, outcome_column: str, demographic_column: str, control_column: str):
         """
-        Initialize the ConditionalDemographicDisparity class with the names of the outcome, demographic, and control columns.
+        Initialize the ConditionalDemographicDisparity class with the names of the outcome, 
+        demographic, and control columns.
 
         Parameters:
         - outcome_column (str): The name of the column for the outcome variable in the DataFrame.
@@ -20,12 +21,19 @@ class ConditionalDemographicDisparity(Metric):
         conditional_outcomes = data.groupBy(self.control_column, self.demographic_column) \
                                    .agg(avg(self.outcome_column).alias("avg_outcome"))
 
-        # Pivot the DataFrame to have demographic groups as columns, which makes it easier to calculate disparity
+        # Pivot the DataFrame to have demographic groups as columns
         pivoted = conditional_outcomes.groupBy(self.control_column) \
                                       .pivot(self.demographic_column) \
                                       .avg("avg_outcome")
 
-        # Assuming demographic groups are '0' and '1', calculate the disparity
-        disparity = pivoted.withColumn("disparity", col("1") - col("0"))
+        # Ensure there are at least two demographic groups to calculate disparity
+        demographic_groups = pivoted.columns
+        demographic_groups.remove(self.control_column)
+        if len(demographic_groups) < 2:
+            raise ValueError("Not enough demographic groups to calculate disparity.")
+
+        # Calculate disparities between all pairs of demographic groups
+        # Here, we simply subtract the values of the first two demographic groups as an example
+        disparity = pivoted.withColumn("disparity", col(demographic_groups[1]) - col(demographic_groups[0]))
 
         return disparity
