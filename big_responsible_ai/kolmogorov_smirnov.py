@@ -14,23 +14,21 @@ class KolmogorovSmirnov(Metric):
         self.sample2_column = sample2_column
 
     def compute(self, data: DataFrame) -> float:
-        # Calculate the ECDF for each sample
+        # Add a unique identifier to join samples later
+        data = data.withColumn("id", F.monotonically_increasing_id())
+        
+        # Prepare window specifications for cumulative distribution
         windowSpec1 = Window.orderBy(col(self.sample1_column)).rowsBetween(Window.unboundedPreceding, Window.currentRow)
-        ecdf1 = data.withColumn('ecdf1', (row_number().over(windowSpec1) - 1) / count().over(Window.partitionBy(self.sample1_column)))
-
         windowSpec2 = Window.orderBy(col(self.sample2_column)).rowsBetween(Window.unboundedPreceding, Window.currentRow)
-        ecdf2 = data.withColumn('ecdf2', (row_number().over(windowSpec2) - 1) / count().over(Window.partitionBy(self.sample2_column)))
-
-        # Combine the two ECDFs into one DataFrame
-        combined = ecdf1.select(col(self.sample1_column).alias("value"), "ecdf1").union(
-            ecdf2.select(col(self.sample2_column).alias("value"), "ecdf2")
-        ).distinct().orderBy("value")
-
-        # Fill forward the last known values for each ECDF (since some values might be present in one sample and not the other)
-        filled = combined.withColumn("ecdf1", last("ecdf1", True).over(Window.orderBy("value").rowsBetween(Window.unboundedPreceding, 0))) \
-                         .withColumn("ecdf2", last("ecdf2", True).over(Window.orderBy("value").rowsBetween(Window.unboundedPreceding, 0)))
-
-        # Calculate the KS statistic as the maximum absolute difference between the two ECDFs
-        ks_statistic = filled.withColumn("ks", abs_(col("ecdf1") - col("ecdf2"))).agg(max_("ks")).collect()[0][0]
-
+        
+        # Calculate ranks
+        data = data.withColumn("rank_sample1", F.percent_rank().over(windowSpec1))
+        data = data.withColumn("rank_sample2", F.percent_rank().over(windowSpec2))
+        
+        # Prepare a combined column for calculating max difference
+        data = data.withColumn("combined_rank", F.when(col(self.sample1_column).isNotNull(), col("rank_sample1")).otherwise(col("rank_sample2")))
+        
+        # Calculate KS statistic as the maximum absolute difference in ranks
+        ks_statistic = data.select(max_(F.abs(col("rank_sample1") - col("rank_sample2"))).alias("ks_stat")).collect()[0]["ks_stat"]
+        
         return ks_statistic
