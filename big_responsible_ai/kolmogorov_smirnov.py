@@ -1,5 +1,5 @@
 from pyspark.sql import DataFrame, Window
-from pyspark.sql.functions import col, max as max_, abs as abs_, row_number, count, last
+from pyspark.sql.functions import F, col, max as max_, abs as abs_, row_number, count, last
 
 class KolmogorovSmirnov(Metric):
     def __init__(self, sample1_column: str, sample2_column: str):
