@@ -2,28 +2,16 @@ from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, pow, abs, sum as sum_
 from metric_interface import Metric
 
-class LpNorm(Metric):
+class LpNorm:
     def __init__(self, p: float, column1: str, column2: str):
-        """
-        Initialize the LpNorm with the power p and the names of the two columns to compare.
-
-        Parameters:
-        - p (float): The exponent value in the Lp-Norm.
-        - column1 (str): The name of the first column in the DataFrame.
-        - column2 (str): The name of the second column in the DataFrame.
-        """
         self.p = p
         self.column1 = column1
         self.column2 = column2
 
     def compute(self, data: DataFrame) -> float:
         # Calculate the Lp-Norm
-        lp_norm = data.select(
-            pow(abs(col(self.column1) - col(self.column2)), self.p)
-        ).agg(
-            pow(sum_("pow"), 1 / self.p)
-        ).collect()[0][0]
-
+        lp_norm = data.withColumn("difference", pow(abs(col(self.column1) - col(self.column2)), self.p)) \
+                      .agg(pow(sum_("difference"), 1 / self.p)).collect()[0][0]
         return lp_norm
 
 def test_lp_norm(spark):
